@@ -2,11 +2,78 @@ source(here::here('src', 'Initialiser.R'))
 
 # ===== Initialise the app =====================================================
 # Imports all functions, verifies output folders, and sets up fonts and DPI
+{
+    font <- 'Roboto Condensed'
+    dpi <- 96
 
-initialise_app()
+    library(caTools)
+    library(cli)
+    library(DBI)
+    library(ggplot2)
+    library(ggraph)
+    library(glue)
+    library(here)
+    library(igraph)
+    library(jsonlite)
+    library(pdftools)
+    library(randomForest)
+    library(readr)
+    library(RSQLite)
+    library(showtext)
+    library(SnowballC)
+    library(sysfonts)
+    library(tidygraph)
+    library(tidytext)
+    library(tidyverse)
+    library(tm)
+    source(here::here("src", "DataAnalysis.R"))
+    source(here::here("src", "DataManagement.R"))
+    source(here::here("src", "DataProcessing.R"))
+    source(here::here("src", "DataReader.R"))
+    source(here::here("src", "Initializer.R"))
+    source(here::here("src", "InterfaceModule.R"))
+    source(here::here("src", "InterfaceStyle.R"))
+    source(here::here("src", "Mapper.R"))
+    source(here::here("src", "Model.R"))
+    source(here::here("src", "PlottingFunctions.R"))
+    source(here::here("src", "Prompts.R"))
 
-# ===== Loading the saved data instead of processing it again ==================
-texts <- extract('Test')
+
+    font_add(font,
+             here('Settings',
+                  'Fonts',
+                  font,
+                  glue('{str_remove_all(font, "[[:space:]]")}-Regular.ttf')),
+             here('Settings',
+                  'Fonts',
+                  font,
+                  glue('{str_remove_all(font, "[[:space:]]")}-Bold.ttf')),
+             here('Settings',
+                  'Fonts',
+                  font,
+                  glue('{str_remove_all(font, "[[:space:]]")}-Italic.ttf')),
+    )
+
+    showtext_opts(dpi)
+    showtext_auto(enable = TRUE)
+
+    dir_checker()
+}
+
+# ===== Loading  data ==========================================================
+
+# Creates the stop words regex for cleaning the data using the TidyText's
+# stop word list
+stopwords_regex <- paste(tidytext::stop_words$word, collapse = '\\b|\\b')
+stopwords_regex <- paste0('\\b', stopwords_regex, '\\b')
+
+# Creates the tibble containing all the file names and the extracted texts
+result <- readxl::read_xlsx("Input/clean_consolidated.xlsx")
+
+result <- result %>% unite(Text,
+                           c(title, description, problem_statement),
+                           sep = " \n",
+                           remove = TRUE)
 
 # You can tidy the extracted texts
 tidy <- tidify(texts,
@@ -15,9 +82,6 @@ tidy <- tidify(texts,
                up_lim = 0.7,
                export_json = TRUE,
                version_name = 'PADs')
-# --------------------------- or Using previously pre-processed results
-tidy <- from_saves('PADs')
-
 
 # ===== Machine learning model =================================================
 
@@ -99,10 +163,6 @@ results <- data_complete %>%
 rm(data_complete)
 
 results$Target <- classified
-
-
-
-
 
 results <- identify_SDGs(results)
 
